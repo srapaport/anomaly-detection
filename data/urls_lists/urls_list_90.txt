@@ -1,0 +1,10 @@
+https://github.com/apache/commons-lang
+https://github.com/google/guava
+https://github.com/spring-projects/spring-boot
+https://github.com/square/okhttp
+https://github.com/ReactiveX/RxJava
+https://github.com/junit-team/junit4
+https://github.com/mockito/mockito
+https://github.com/google/gson
+https://github.com/apache/httpcomponents-httpclient
+https://github.com/FasterXML/jackson
