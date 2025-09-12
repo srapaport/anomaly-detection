@@ -2,3 +2,4 @@
 .venvswh1/*
 .venvswh1_py2neo/*
 *__pycache__*
+.venv/*
