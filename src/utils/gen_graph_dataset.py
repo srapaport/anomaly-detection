@@ -262,12 +262,13 @@ def gen_dataset(urls_file_path:str = "data/repodata/urls_list.txt", \
     '''To stop dockerd:
         ps -aux | grep dockerd
         sudo kill -9 <id>'''
-    subprocess.Popen('sudo dockerd & sleep 10', shell=True, stdout=subprocess.PIPE).wait()
-    subprocess.Popen('sudo docker container stop $(sudo docker container list -q)', shell=True).wait()
-    subprocess.Popen('sudo docker rm $(sudo docker ps -a -q)', shell=True).wait()
+    # subprocess.Popen('sudo dockerd & sleep 10', shell=True, stdout=subprocess.PIPE).wait()
+    subprocess.Popen('docker container stop $(docker container list -q)', shell=True).wait()
+    subprocess.Popen('docker rm $(docker ps -a -q)', shell=True).wait()
     subprocess.Popen('sudo rm -rf ../neo4j/data', shell=True).wait()
     subprocess.Popen('sudo rm -rf ../neo4j/plugins', shell=True).wait()    
-    subprocess.Popen('sudo docker run -p 7474:7474 -p 7687:7687 -v /Users/i534627/neo4j/data:/data -v /Users/i534627/neo4j/plugins:/plugins  -e NEO4JLABS_PLUGINS=\'["apoc"]\'   -e NEO4J_AUTH=neo4j/neo4jj neo4j:3.5.11 & sleep 30', shell=True).wait()    
+    # subprocess.Popen('docker run -p 7474:7474 -p 7687:7687 -v $HOME/neo4j/data:/data -v $HOME/neo4j/plugins:/plugins  -e NEO4JLABS_PLUGINS=\'["apoc"]\'   -e NEO4J_AUTH=neo4j/neo4jj neo4j:3.5.11 & sleep 30', shell=True).wait()
+    subprocess.Popen('docker run --platform linux/amd64 -p 7474:7474 -p 7687:7687 -v $HOME/neo4j/data:/data -v $HOME/neo4j/plugins:/plugins -e NEO4JLABS_PLUGINS=\'["apoc"]\' -e NEO4J_AUTH=neo4j/neo4jj neo4j:3.5.11 & sleep 30', shell=True).wait()
         
     for url in urls_list:
         project_id = url.split('/')[-1]       
@@ -347,7 +348,7 @@ def gen_dataset(urls_file_path:str = "data/repodata/urls_list.txt", \
         branches_commits_df, branches_files_df, branches_methods_df, \
             devs_commits_df, devs_files_df, devs_methods_df, \
                 commits_parents_df, commits_files_df, commits_methods_df, \
-                    files_graph_df, methods_graph_df = gen_git_graph(config_path, project_id, url)        
+                    files_graph_df, methods_graph_df = gen_git_graph(config_path, project_id, url) # DEBUG
         print('Data extraction from Gihub complete for project: '+project_id, file=out_f)
         
         ''' Extracting node features, edge indices, edge names and edge features 
