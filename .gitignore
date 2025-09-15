@@ -3,3 +3,4 @@
 .venvswh1_py2neo/*
 *__pycache__*
 .venv/*
+gen_dataset_output*
