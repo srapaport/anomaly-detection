@@ -4,3 +4,4 @@
 *__pycache__*
 .venv/*
 gen_dataset_output*
+working/*
