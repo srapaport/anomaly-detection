@@ -11,12 +11,21 @@ warnings.simplefilter(action='ignore')
 def gen_branch_graph(miner):
     """ The branches miner - get_all """
     print('\nGenerating Branches Graph ... ')
+    
     branches = miner.branch_miner.get_all()
     branches_df = pd.DataFrame(branches)
     branches_df = branches_df.add_prefix("branch_")
     branches_df.rename(columns = {'branch_project_id':'project_id'}, inplace = True)
-    # print("\nBranches_df\n", branches_df.columns)
-    # display(branches_df)    
+    
+    # # Safety check for empty DataFrame
+    # if branches_df.empty or 'branch_hash' not in branches_df.columns:
+    #     print("No branches found in database yet. Repository may need to be mined first.")
+    #     return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+
+    # """ The branches miner - get_branch_commits """
+    # if branches_df.empty or 'branch_hash' not in branches_df.columns:
+    #     print("No branch_hash column found or DataFrame is empty. Returning empty results.")
+    #     return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
 
     """ The branches miner - get_branch_commits """
     branches_commits_df = pd.DataFrame()
@@ -76,10 +85,27 @@ def gen_dev_graph(miner, url):
     devs_df = pd.DataFrame(devs)
 
     #g = Github("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")
-    g = Github("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")
+    #g = Github("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")  # This token has expired
+    
+    # Try to use environment variable first, fallback to no auth (rate limited but works for public repos)
+    import os
+    github_token = os.getenv('GITHUB_TOKEN')
+    if github_token:
+        g = Github(github_token)
+        print("Using GitHub token from environment variable")
+    else:
+        g = Github()  # No auth - will be rate limited but should work for public repos
+        print("No GitHub token found. Using unauthenticated access (rate limited)")
+    
+    # Continue with existing code
     reponame = "/".join(url.split("/")[-2:])
     repo = g.get_repo(reponame)
     git_devs_r = repo.get_contributors()
+    
+    # Create working directory if it doesn't exist
+    import os
+    os.makedirs("working", exist_ok=True)
+    
     np.save("working/git_devs.npy", np.array(git_devs_r, dtype=object))
     git_devs = np.load("working/git_devs.npy", allow_pickle=True)
     devs_df["login"] = ""
@@ -315,9 +341,9 @@ def gen_git_graph(config_path, project_id, url):
     # os.system("python3 -m examples.mine_all --config="+config_path)
     
     """ initialize mine manager """
-    miner = MineManager(config_path=config_path)
+    miner = MineManager(config_path=config_path) 
     
-    branches_commits_df, branches_files_df, branches_methods_df = gen_branch_graph(miner)
+    branches_commits_df, branches_files_df, branches_methods_df = gen_branch_graph(miner) # Solal Debug
     devs_commits_df, devs_files_df, devs_methods_df = gen_dev_graph(miner, url)
     commits_parents_df, commits_files_df, commits_methods_df = gen_commit_graph(miner)
     files_graph_df = gen_file_graph(miner)
