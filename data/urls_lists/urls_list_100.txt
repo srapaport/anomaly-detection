@@ -88,3 +88,13 @@ https://github.com/JedWatson/classnames
 https://github.com/webpack/webpack-dev-server
 https://github.com/tailwindlabs/tailwindcss
 https://github.com/typicode/husky
+https://github.com/expressjs/cors
+https://github.com/jantimon/html-webpack-plugin
+https://github.com/kentcdodds/babel-plugin-macros
+https://github.com/acornjs/acorn
+https://github.com/react-hook-form/react-hook-form
+https://github.com/nodeca/pako
+https://github.com/jonschlinkert/kind-of
+https://github.com/expressjs/express
+https://github.com/pinojs/pino
+https://github.com/jshttp/mime-types
