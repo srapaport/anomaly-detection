@@ -17,6 +17,11 @@ def gen_branch_graph(miner):
     branches_df = branches_df.add_prefix("branch_")
     branches_df.rename(columns = {'branch_project_id':'project_id'}, inplace = True)
     
+    #debug
+    print(f"\nBranches_df columns: {list(branches_df.columns)}")
+    print(f"Branches_df shape: {branches_df.shape}")
+    print(f"Branches data sample: {branches[:2] if branches else 'No branches found'}")
+    
     # # Safety check for empty DataFrame
     # if branches_df.empty or 'branch_hash' not in branches_df.columns:
     #     print("No branches found in database yet. Repository may need to be mined first.")
@@ -187,10 +192,18 @@ def gen_commit_graph(miner):
     print('\nGenerating Commits Graph ... ')
     commits = miner.commit_miner.get_all()
     commits_df = pd.DataFrame(commits)
+    
+    # Debug: Check if commits data exists
+    print(f"Found {len(commits)} commits")
+    if commits_df.empty:
+        print("No commits found in database. Returning empty DataFrames.")
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+    
     commits_df = commits_df.add_prefix("commit_")
     commits_df.rename(columns = {'commit_timestamp':'timestamp', 'commit_project_id':'project_id'}, inplace = True)
-    # print("\nCommits_df\n", commits_df.columns)
-    # display(commits_df)
+    # Debug
+    print("\nCommits_df\n", commits_df.columns)
+    display(commits_df)
     
     commits_parents_df = pd.DataFrame()
     commits_files_df = pd.DataFrame()    
@@ -206,12 +219,14 @@ def gen_commit_graph(miner):
         else:
             commit_df = pd.merge(commits_df[commits_df.commit_hash == h], commit_parents_df, on=["project_id"])
         commits_parents_df = pd.concat([commits_parents_df, commit_df])
+        # print("\ncommits_parents_df\n", commit_parents_df)
         # display(commits_parents_df)
 
         commit_files = miner.commit_miner.get_commit_files(h)
         commit_files_df = pd.DataFrame(commit_files)
         commit_files_df = commit_files_df.add_prefix("file_")
         commit_files_df.rename(columns = {'file_project_id':'project_id'}, inplace = True)
+        # print("\ncommits_files_df\n", commits_files_df)
         # display(commit_files_df)
 
         commit_file_updates = miner.commit_miner.get_commit_file_updates(h)
@@ -222,6 +237,7 @@ def gen_commit_graph(miner):
         #     commit_file_updates_df["file_name"] = np.where(commit_file_updates_df.fileupdate_old_path == "", \
         #                                             commit_file_updates_df.fileupdate_path.str.split("/").str[-1], \
         #                                             commit_file_updates_df.fileupdate_old_path.str.split("/").str[-1])
+        # print("\ncommits_file_updates_df\n", commit_file_updates_df)
         # display(commit_file_updates_df)
 
         if commit_files_df.empty and commit_file_updates_df.empty:
@@ -255,13 +271,40 @@ def gen_commit_graph(miner):
             commit_methods_df = commit_methods_df.join(commit_method_updates_df)
             commit_df = pd.merge(commits_df[commits_df.commit_hash == h], commit_methods_df, on=["timestamp", "project_id"])
         commits_methods_df = pd.concat([commits_methods_df, commit_df])
-           
+    ### Debug
+    print("\ncommits_parents_df\n", commit_parents_df)
+    display(commits_parents_df) 
+    print("\ncommits_files_df\n", commits_files_df)
+    display(commit_files_df)
+    print("\ncommits_file_updates_df\n", commit_file_updates_df)
+    display(commit_file_updates_df)
+    print("\ncommits_df\n")
+    display(commit_df)
+    print("\ncommit_methods_df\n")
+    display(commit_methods_df)
+    ### Debug stop
+    
     commits_parents_df.commit_hash = commits_parents_df.project_id  + commits_parents_df.commit_hash
     commits_parents_df.parent_hash = commits_parents_df.project_id  + commits_parents_df.parent_hash
     commits_files_df.commit_hash = commits_files_df.project_id  + commits_files_df.commit_hash
     commits_files_df.file_hash = commits_files_df.project_id  + commits_files_df.file_hash
     commits_methods_df.commit_hash = commits_methods_df.project_id  + commits_methods_df.commit_hash
     commits_methods_df.method_hash = commits_methods_df.project_id  + commits_methods_df.method_hash
+    
+    # Add safety checks before trying to concatenate hash columns
+    # if not commits_parents_df.empty and 'commit_hash' in commits_parents_df.columns and 'parent_hash' in commits_parents_df.columns:
+    #     commits_parents_df.commit_hash = commits_parents_df.project_id + commits_parents_df.commit_hash
+    #     commits_parents_df.parent_hash = commits_parents_df.project_id + commits_parents_df.parent_hash
+    
+    # if not commits_files_df.empty and 'commit_hash' in commits_files_df.columns and 'file_hash' in commits_files_df.columns:
+    #     commits_files_df.commit_hash = commits_files_df.project_id + commits_files_df.commit_hash
+    #     commits_files_df.file_hash = commits_files_df.project_id + commits_files_df.file_hash
+    
+    # if not commits_methods_df.empty and 'commit_hash' in commits_methods_df.columns and 'method_hash' in commits_methods_df.columns:
+    #     commits_methods_df.commit_hash = commits_methods_df.project_id + commits_methods_df.commit_hash
+    #     commits_methods_df.method_hash = commits_methods_df.project_id + commits_methods_df.method_hash
+    # else:
+    #     print("commits_methods_df is empty or missing required columns. This may be normal for some repositories.")
 
     return commits_parents_df, commits_files_df, commits_methods_df
 
@@ -287,7 +330,7 @@ def gen_file_graph(miner):
         if file_cur_methods_df.empty and file_past_methods_df.empty:
             file_updates_df = files_df[files_df.file_hash == h]       
         else:
-            file_methods_df = file_cur_methods_df.append(file_past_methods_df)
+            file_methods_df = pd.concat([file_cur_methods_df, file_past_methods_df], ignore_index=True)
             file_methods_df = file_methods_df.add_prefix("method_")
             file_methods_df.method_name = file_methods_df.method_file_name + "_" + file_methods_df.method_name
             file_methods_df.rename(columns = {'method_file_name':'file_name', 'method_project_id':'project_id'}, inplace = True)        
@@ -297,9 +340,14 @@ def gen_file_graph(miner):
         # if not file_updates_df.empty:
             # display(file_updates_df.to_markdown())
     # print("\nFiles_updates_df\n", files_updates_df.columns)
-    # display(files_updates_df)    
-    files_updates_df.file_hash = files_updates_df.project_id  + files_updates_df.file_hash
-    files_updates_df.method_hash = files_updates_df.project_id  + files_updates_df.method_hash
+    # display(files_updates_df)
+    
+    # Add safety checks before hash concatenation
+    if not files_updates_df.empty and 'file_hash' in files_updates_df.columns:
+        files_updates_df.file_hash = files_updates_df.project_id + files_updates_df.file_hash
+    
+    if not files_updates_df.empty and 'method_hash' in files_updates_df.columns:
+        files_updates_df.method_hash = files_updates_df.project_id + files_updates_df.method_hash
 
     return files_updates_df
 
@@ -309,8 +357,17 @@ def gen_method_graph(miner):
     print('\nGenerating Methods Graph ... ')
     methods = miner.method_miner.get_all()
     methods_df = pd.DataFrame(methods)
+    
+    if methods_df.empty:
+        print("No methods found in database.")
+        return pd.DataFrame()
+    
     methods_df = methods_df.add_prefix("method_")
-    methods_df.method_name = methods_df.method_file_name + "_" + methods_df.method_name
+    
+    # Safe method name creation
+    if 'method_file_name' in methods_df.columns and 'method_name' in methods_df.columns:
+        methods_df.method_name = methods_df.method_file_name + "_" + methods_df.method_name
+    
     methods_df.rename(columns = {'method_file_name':'file_name', 'method_project_id':'project_id'}, inplace = True)
     # print("\nMethods_df\n", methods_df.columns)
     # display(methods_df)    
@@ -332,7 +389,10 @@ def gen_method_graph(miner):
     # print("\nMethods_updates_df\n", methods_updates_df.columns)
     # display(methods_updates_df)    
     # methods_updates_df.method_hash = methods_updates_df.project_id  + methods_updates_df.method_hash
-    methods_df.method_hash = methods_df.project_id  + methods_df.method_hash
+    
+    # Safe hash concatenation
+    if not methods_df.empty and 'method_hash' in methods_df.columns:
+        methods_df.method_hash = methods_df.project_id + methods_df.method_hash
 
     return methods_df
 
@@ -343,9 +403,9 @@ def gen_git_graph(config_path, project_id, url):
     """ initialize mine manager """
     miner = MineManager(config_path=config_path) 
     
-    branches_commits_df, branches_files_df, branches_methods_df = gen_branch_graph(miner) # Solal Debug
+    branches_commits_df, branches_files_df, branches_methods_df = gen_branch_graph(miner) 
     devs_commits_df, devs_files_df, devs_methods_df = gen_dev_graph(miner, url)
-    commits_parents_df, commits_files_df, commits_methods_df = gen_commit_graph(miner)
+    commits_parents_df, commits_files_df, commits_methods_df = gen_commit_graph(miner) # Solal Debug
     files_graph_df = gen_file_graph(miner)
     methods_graph_df = gen_method_graph(miner)
     
