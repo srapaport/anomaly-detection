@@ -5,3 +5,6 @@
 .venv/*
 gen_dataset_output*
 working/*
+data/paper/*
+*.pkl
+examples/configs/*
