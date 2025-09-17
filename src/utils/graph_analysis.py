@@ -10,27 +10,50 @@ import warnings
 warnings.simplefilter(action='ignore')
 
 def print_graph_stats(GR_GAD_df, node_type, features, edge_features, labels, g, url, _print=False):
-    n_features = features.shape[1]
-    n_edge_features = edge_features.shape[1]
+    # Safety checks for None values
+    if features is None:
+        print(f"Warning: features is None for {url}")
+        n_features = 0
+    else:
+        n_features = features.shape[1]
+        
+    if edge_features is None:
+        print(f"Warning: edge_features is None for {url}")
+        n_edge_features = 0
+    else:
+        n_edge_features = edge_features.shape[1]
 
-    n_nodes = len(labels)
-    branches = len(node_type[node_type == 0])
-    developers = len(node_type[node_type == 1])
-    commits = len(node_type[node_type == 2])
-    files = len(node_type[node_type == 3])
-    methods = len(node_type[node_type == 4])
+    if labels is None:
+        print(f"Warning: labels is None for {url}")
+        n_nodes = 0
+        n_norm_nodes = 0
+        n_anom_nodes = 0
+        anom_ratio = 0.0
+    else:
+        n_nodes = len(labels)
+        n_norm_nodes = len(labels[labels == 0])
+        n_anom_nodes = len(labels[labels == 1])
+        anom_ratio = np.round((n_anom_nodes / n_nodes) * 100, 2) if n_nodes > 0 else 0.0
+    
+    if node_type is None:
+        print(f"Warning: node_type is None for {url}")
+        branches = developers = commits = files = methods = 0
+    else:
+        branches = len(node_type[node_type == 0])
+        developers = len(node_type[node_type == 1])
+        commits = len(node_type[node_type == 2])
+        files = len(node_type[node_type == 3])
+        methods = len(node_type[node_type == 4])
 
-    n_norm_nodes = len(labels[labels == 0])
-    n_anom_nodes = len(labels[labels == 1])
-    anom_ratio = np.round((n_anom_nodes / n_nodes) * 100, 2)
+    t_edges = (n_nodes**2) if n_nodes > 0 else 0
+    n_edges = edge_features.shape[0] if edge_features is not None else 0
+    sparsity = np.round((n_edges / t_edges) * 100, 2) if t_edges > 0 else 0.0
 
-    t_edges = (n_nodes**2)
-    n_edges = (edge_features.shape[0])
-    sparsity = np.round((n_edges / t_edges) * 100, 2)
-
-    GR_GAD_df.loc[g] \
-        = [url, branches, developers, commits, files, methods, \
-            n_anom_nodes, anom_ratio, n_edges, t_edges, sparsity]
+    # Safety check for DataFrame operations
+    if GR_GAD_df is not None and g is not None:
+        GR_GAD_df.loc[g] \
+            = [url, branches, developers, commits, files, methods, \
+                n_anom_nodes, anom_ratio, n_edges, t_edges, sparsity]
 
     if _print:
         print("\nTotal number of node features: ", n_features)
