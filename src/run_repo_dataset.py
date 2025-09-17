@@ -32,7 +32,7 @@ if not os.path.isdir(os.path.join(file_dir, "..", "tmp")):
     os.system('mkdir ' + os.path.join(file_dir, "..", "tmp"))
 
 ''' Generating Dataset from Git Repos '''
-#urls_file_path =  os.path.join(file_dir, "..", "data", "urls_lists", "urls_list_95.txt")
+#urls_file_path =  os.path.join(file_dir, "..", "data", "urls_lists", "urls_list_malicious.txt")
 urls_file_path = os.path.join(file_dir, "..", "data", "urls_lists", "toms.txt")
 with open(urls_file_path) as f:
         urls_list = f.read().split("\n")
@@ -40,13 +40,14 @@ urls_list = list(filter(lambda x: len(x) >2, urls_list))
 
 gen_graph = True
 process_graph = True
-inject_anom = False
+inject_anom = True
 sampling = False
 part = "None"
 if sampling:
     type_str = "_s_2_3_4"       # empty for all anomalies, _1 for type1, _2 for type2, _3 for type3, _4 for type4, _5 for type5 
 else:
-    type_str = "_2_3_4"       # empty for all anomalies, _1 for type1, _2 for type2, _3 for type3, _4 for type4, _5 for type5 
+    # type_str = "_2_3_4"       # empty for all anomalies, _1 for type1, _2 for type2, _3 for type3, _4 for type4, _5 for type5 
+    type_str = "_2"
 
 
 if gen_graph or process_graph or inject_anom:
@@ -63,17 +64,20 @@ data_list =[]
 for url in urls_list:
     data_list.append(path_inject_anom + "/repo_graph_anom"+type_str+"_"+url.split('/')[-1]+".pkl")
     # data_list.append(path_labeled_anom + "/labeled_repo_graph_"+url.split('/')[-1]+".pkl")
-
+print("data_list: ", data_list)
 
 # data = Repo_Dataset(len(urls_list))
-data = Repo_Dataset_IM(len(urls_list))
-data._data_list = data_list
-data.load()
+data = Repo_Dataset_IM(len(urls_list), data_list)
+# data._data_list = data_list
+data_bis = data.load()
+print("test 1: ", data_bis[0].edge_features)
+print("test 2: ", data_bis[1].edge_features)
+print("test 3: ", data_bis[2].edge_features)
 
 print_stats = True
 b_min = False
-train = False
-test = True
+train = True
+test = False
 plots = False
 test_octopus = False
 test_malicious = False
@@ -83,6 +87,7 @@ tvt_multiple = False
 
 if print_stats:
     N = data.len()
+    print("data.len() = ", N)
     GR_GAD_df \
         = pd.DataFrame(columns=['Repository', 'Branches', 'Developers', 'Commits', \
                                 'Files', 'Methods', 'No. of Anomalous Nodes', \
