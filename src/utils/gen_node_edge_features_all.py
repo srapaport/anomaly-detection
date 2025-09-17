@@ -64,8 +64,21 @@ def gen_dev_nodes(devs_graph_df):
     dev_nodes_df.dev_created_at = pd.to_datetime(dev_nodes_df.dev_created_at)
     dev_nodes_df["dev_exists"] \
         = [1 if not pd.isnull(d) else 0 for d in dev_nodes_df.dev_created_at]
-    dev_nodes_df["dev_account_age"] \
-        = [(datetime.datetime.utcnow() - d).days if not pd.isnull(d) else pd.NaT for d in dev_nodes_df.dev_created_at]
+    
+    def safe_date_diff(created_at):
+        # Fix timezone issue: convert timezone-aware datetimes to timezone-naive
+        if pd.isnull(created_at) or created_at is pd.NaT:
+            return pd.NaT
+        if hasattr(created_at, 'tz') and created_at.tz is not None:
+            created_at_naive = created_at.tz_convert('UTC').tz_localize(None)
+        else:
+            created_at_naive = created_at
+        now_naive = datetime.datetime.utcnow()
+        return (now_naive - created_at_naive).days
+    
+    dev_nodes_df["dev_account_age"] = [
+        safe_date_diff(d) for d in dev_nodes_df.dev_created_at
+    ]
     dev_nodes_df = dev_nodes_df.drop(columns="dev_created_at")
     # print("\nDeveloper node features: \n", dev_nodes_df.columns)
     # display(dev_nodes_df)
@@ -198,6 +211,9 @@ def gen_nodes(branches_commits_df, devs_commits_df, \
     file_nodes_df, file_names,file_node_type = gen_file_nodes(files_graph_df)
     method_nodes_df, method_names, method_node_type = gen_method_nodes(methods_graph_df)
 
+    import os
+    if not os.path.exists("working/graphdata"):
+        os.makedirs("working/graphdata")
     branch_nodes_df.to_csv("working/graphdata/branch_nodes_df.csv")
     dev_nodes_df.to_csv("working/graphdata/dev_nodes_df.csv")
     commit_nodes_df.to_csv("working/graphdata/commit_nodes_df.csv")
