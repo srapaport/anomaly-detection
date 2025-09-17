@@ -39,9 +39,11 @@ class Repo_Dataset(Dataset):
    
 
 class Repo_Dataset_IM(InMemoryDataset):
-    def __init__(self, N):
+    def __init__(self, N, data_list=None):
         super().__init__()
         self.N = N
+        self._custom_data_list = data_list  # Store in a custom attribute to avoid parent interference
+        self._data_list = data_list
 
     def len(self):
         return self.N
@@ -52,13 +54,22 @@ class Repo_Dataset_IM(InMemoryDataset):
 
     def load(self, ):
         self.data = []
+        print("loqd function")
+        # Use our custom attribute and also reset _data_list from it
+        self._data_list = self._custom_data_list
+        print(f"Debug: _data_list is {self._data_list}")
+        print(f"Debug: _custom_data_list is {self._custom_data_list}")
         if self._data_list is None:
+            print("data list is none, if entered")
             for n in range(self.N):
                 repo_graph = Repo_Graph()
                 self.data.append(repo_graph)
         else:
+            print("data_list is not none else entered")
             for url in self._data_list:
+                print("url is: ", url)
                 repo_graph = pickle.load(open(url, "rb"))
+                print("is REPO GRQPH none???????? : ", repo_graph)
                 self.data.append(repo_graph)
         return self.data
         
@@ -134,6 +145,19 @@ def f_score_(nodes_pred, nodes, th=0.5):
 
 
 def create_split(repo, c_idx_1, c_idx_2, c_idx_3):
+    # Safety checks for None values
+    if repo.edge_indices is None or repo.edge_features is None:
+        print("Warning: edge_indices or edge_features is None, returning empty tensors")
+        return torch.tensor([]), torch.tensor([]), torch.tensor([]), torch.tensor([]), torch.tensor([])
+    
+    if repo.node_features is None or repo.targets is None or repo.node_labels is None:
+        print("Warning: node_features, targets, or node_labels is None, returning empty tensors")
+        return torch.tensor([]), torch.tensor([]), torch.tensor([]), torch.tensor([]), torch.tensor([])
+        
+    if repo.adj is None:
+        print("Warning: adjacency matrix is None, returning empty tensors")
+        return torch.tensor([]), torch.tensor([]), torch.tensor([]), torch.tensor([]), torch.tensor([])
+    
     repo.edge_indices, idxs = torch.unique(repo.edge_indices, dim=1, return_inverse=True)
     repo.edge_features = repo.edge_features[torch.unique(idxs)]
 
@@ -172,7 +196,47 @@ def train_val_test_split(data, tt_state, tv_state):
                                 test_size=0.2, random_state=tt_state, shuffle=True)         
         c_idx_train, c_idx_val, _, _ \
             = train_test_split(c_idx_tv, c_targets_tv, stratify=c_targets_tv,
-                                test_size=0.2, random_state=tv_state, shuffle=True)         
+                                test_size=0.2, random_state=tv_state, shuffle=True)
+        # # Safety checks for None values
+        # if repo.node_type is None:
+        #     print(f"Warning: repo.node_type is None for repository {r}, skipping...")
+        #     continue
+            
+        # if repo.targets is None:
+        #     print(f"Warning: repo.targets is None for repository {r}, skipping...")
+        #     continue
+            
+        # # Check if there are any nodes of type 2 (commits)
+        # commit_mask = repo.node_type == 2
+        # if not commit_mask.any():
+        #     print(f"Warning: No commit nodes (type 2) found in repository {r}, skipping...")
+        #     continue
+            
+        # index = list(np.where(commit_mask)[0])
+        # c_targets = repo.targets[commit_mask]
+        
+        # # Check if we have enough samples for stratified split
+        # if len(index) < 2:
+        #     print(f"Warning: Not enough commit nodes ({len(index)}) for splitting in repository {r}, skipping...")
+        #     continue
+            
+        # # Check if we have both classes for stratification
+        # unique_targets = torch.unique(c_targets)
+        # if len(unique_targets) < 2:
+        #     print(f"Warning: Only one class found in targets for repository {r}, using random split instead of stratified...")
+        #     c_idx_tv, c_idx_test, c_targets_tv, _ \
+        #         = train_test_split(index, c_targets,
+        #                             test_size=0.2, random_state=tt_state, shuffle=True)         
+        #     c_idx_train, c_idx_val, _, _ \
+        #         = train_test_split(c_idx_tv, c_targets_tv,
+        #                             test_size=0.2, random_state=tv_state, shuffle=True)
+        # else:
+        #     c_idx_tv, c_idx_test, c_targets_tv, _ \
+        #         = train_test_split(index, c_targets, stratify=c_targets,
+        #                             test_size=0.2, random_state=tt_state, shuffle=True)         
+        #     c_idx_train, c_idx_val, _, _ \
+        #         = train_test_split(c_idx_tv, c_targets_tv, stratify=c_targets_tv,
+        #                             test_size=0.2, random_state=tv_state, shuffle=True)         
         
         train_data[r].node_features, train_data[r].edge_indices, \
             train_data[r].edge_features, train_data[r].node_labels, train_data[r].targets \
