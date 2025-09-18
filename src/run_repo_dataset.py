@@ -33,7 +33,8 @@ if not os.path.isdir(os.path.join(file_dir, "..", "tmp")):
 
 ''' Generating Dataset from Git Repos '''
 #urls_file_path =  os.path.join(file_dir, "..", "data", "urls_lists", "urls_list_malicious.txt")
-urls_file_path = os.path.join(file_dir, "..", "data", "urls_lists", "toms.txt")
+urls_file_path = os.path.join(file_dir, "..", "data", "urls_lists", "urls_list_90.txt")  # 89 repos - good for testing
+# urls_file_path = os.path.join(file_dir, "..", "data", "urls_lists", "urls_list_100.txt")  # 99 repos - full dataset
 with open(urls_file_path) as f:
         urls_list = f.read().split("\n")
 urls_list = list(filter(lambda x: len(x) >2, urls_list))
@@ -172,8 +173,8 @@ if not tvt_multiple:
         hp_GVAE = [1e-3, 128, 2, 2, 1e-5, 0]
         hp_SAD = [1e-3, 128, 2, 2, 1e-2, 0.0, 50, 0.05, 0.5]
 
-    n_epoch_GVAE = 100
-    n_epoch_SAD = 100
+    n_epoch_GVAE = 50  # Reduced for testing - increase to 100 later
+    n_epoch_SAD = 50   # Reduced for testing - increase to 100 later
     
     out_f = open(run_dir + "/output_"+str(n_epoch_GVAE)+"_"+str(hp_GVAE)+"_"+name+"_"+str(datetime.date.today())+".txt", "a")
 
